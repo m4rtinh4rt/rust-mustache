@@ -1,7 +1,7 @@
 extern crate mustache;
 
-use std::str;
 use std::collections::HashMap;
+use std::str;
 
 fn main() {
     let template = mustache::compile_str("This is a {{type}} example!").expect("Failed to compile");

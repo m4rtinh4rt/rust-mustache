@@ -1,9 +1,9 @@
-use std::collections::HashMap;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::fmt;
 
 // for bug!
-use log::{log, error};
+use log::{error, log};
 
 pub enum Data {
     Null,
@@ -26,7 +26,7 @@ impl PartialEq for Data {
             (&Data::Fun(_), &Data::Fun(_)) => {
                 bug!("Cannot compare closures");
                 false
-            },
+            }
             (_, _) => false,
         }
     }
