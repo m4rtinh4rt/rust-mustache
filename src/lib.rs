@@ -4,9 +4,9 @@
 extern crate log;
 extern crate serde;
 
-use std::str;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 use std::result;
+use std::str;
 
 #[macro_use]
 mod macros;
@@ -25,7 +25,7 @@ pub use context::Context;
 pub use data::Data;
 pub use encoder::Encoder;
 pub use encoder::Error as EncoderError;
-pub use encoder::{SerializeVec, SerializeTupleVariant, SerializeMap, SerializeStructVariant};
+pub use encoder::{SerializeMap, SerializeStructVariant, SerializeTupleVariant, SerializeVec};
 pub use error::{Error, Result};
 pub use parser::Error as ParserError;
 pub use template::Template;
@@ -52,7 +52,10 @@ pub fn compile_path<U: AsRef<Path>>(path: U) -> Result<Template> {
             let template_dir = path.parent().unwrap_or(Path::new("."));
             // FIXME: Should work with OsStrings, this will not use provided extension if
             // the extension is not utf8 :(
-            let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or("mustache");
+            let extension = path
+                .extension()
+                .and_then(|ext| ext.to_str())
+                .unwrap_or("mustache");
 
             let context = Context {
                 template_path: template_dir.to_path_buf(),
