@@ -8,6 +8,7 @@ authors = ["erick.tryzelaar@gmail.com"]
 license = "MIT/Apache-2.0"
 rust-version = "1.85.0"
 edition = "2024"
+autotests = false
 
 [features]
 unstable = []
