@@ -1,3 +1,4 @@
+use std::error::Error as StdError;
 use std::fmt;
 use std::io::Error as StdIoError;
 use std::result::Result as StdResult;
@@ -38,6 +39,8 @@ impl fmt::Display for Error {
         )
     }
 }
+
+impl StdError for Error {}
 
 impl From<StdIoError> for Error {
     fn from(err: StdIoError) -> Error {
