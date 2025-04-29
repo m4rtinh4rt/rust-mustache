@@ -6,10 +6,11 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use tempdir::TempDir;
 
-use mustache::{self, to_data, Data, Error};
+use mustache::{self, Data, Error, to_data};
 use mustache::{Context, Template};
 
 use serde::Serialize;
+use serde_derive::Serialize;
 use serde_json;
 use serde_json::Value as Json;
 

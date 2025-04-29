@@ -21,15 +21,17 @@ mod error;
 mod parser;
 mod template;
 
-pub use builder::{MapBuilder, VecBuilder};
-pub use context::Context;
-pub use data::Data;
-pub use encoder::Encoder;
-pub use encoder::Error as EncoderError;
-pub use encoder::{SerializeMap, SerializeStructVariant, SerializeTupleVariant, SerializeVec};
-pub use error::{Error, Result};
-pub use parser::Error as ParserError;
-pub use template::Template;
+pub use crate::builder::{MapBuilder, VecBuilder};
+pub use crate::context::Context;
+pub use crate::data::Data;
+pub use crate::encoder::Encoder;
+pub use crate::encoder::Error as EncoderError;
+pub use crate::encoder::{
+    SerializeMap, SerializeStructVariant, SerializeTupleVariant, SerializeVec,
+};
+pub use crate::error::{Error, Result};
+pub use crate::parser::Error as ParserError;
+pub use crate::template::Template;
 
 pub fn to_data<T>(value: T) -> result::Result<Data, encoder::Error>
 where

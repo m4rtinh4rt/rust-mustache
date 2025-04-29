@@ -1,4 +1,3 @@
-#[cfg(test)]
 macro_rules! assert_let {
     (@as_block $block:block) => { $block };
     ($pattern:pat = $thing:expr) => {

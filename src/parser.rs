@@ -11,16 +11,7 @@ pub enum Token {
     Text(String),
     EscapedTag(Vec<String>, String),
     UnescapedTag(Vec<String>, String),
-    Section(
-        Vec<String>,
-        bool,
-        Vec<Token>,
-        String,
-        String,
-        String,
-        String,
-        String,
-    ),
+    Section(Vec<String>, bool, Vec<Token>, String, String, Vec<String>),
     IncompleteSection(Vec<String>, bool, String, bool),
     Partial(String, String, String),
     #[cfg(feature = "CFEngine")]
@@ -42,6 +33,7 @@ pub enum Token {
 /// This type is not intended to be matched exhaustively as new variants
 /// may be added in future without a version bump.
 #[derive(Debug, PartialEq)]
+#[non_exhaustive]
 pub enum Error {
     BadClosingTag(char, char),
     UnclosedTag,
@@ -51,9 +43,6 @@ pub enum Error {
     EarlySectionClose(String),
     MissingSetDelimeterClosingTag,
     InvalidSetDelimeterSyntax,
-
-    #[doc(hidden)]
-    __Nonexhaustive,
 }
 
 impl StdError for Error {}
@@ -64,12 +53,11 @@ impl fmt::Display for Error {
         match *self {
             Error::BadClosingTag(actual, expected) => write!(
                 f,
-                "character {:?} was unexpected in the closing tag, expected {:?}",
-                actual, expected
+                "character {actual:?} was unexpected in the closing tag, expected {expected:?}",
             ),
-            Error::UnclosedSection(ref name) => write!(f, "found an unclosed section: {:?}", name),
+            Error::UnclosedSection(ref name) => write!(f, "found an unclosed section: {name:?}"),
             Error::EarlySectionClose(ref name) => {
-                write!(f, "found a closing tag for an unopened section {:?}", name)
+                write!(f, "found a closing tag for an unopened section {name:?}")
             }
             Error::UnclosedTag => write!(f, "found an unclosed tag"),
             Error::UnbalancedUnescapeTag => write!(f, "found an unbalanced unescape tag"),
@@ -78,7 +66,6 @@ impl fmt::Display for Error {
                 write!(f, "missing the new closing tag in set delimeter tag")
             }
             Error::InvalidSetDelimeterSyntax => write!(f, "invalid set delimeter tag syntax"),
-            Error::__Nonexhaustive => unreachable!(),
         }
     }
 }
@@ -117,7 +104,7 @@ enum ParserState {
 impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
     pub fn new(reader: &'a mut T, opening_tag: &str, closing_tag: &str) -> Parser<'a, T> {
         let mut parser = Parser {
-            reader: reader,
+            reader,
             ch: None,
             lookahead: None,
             line: 1,
@@ -201,7 +188,7 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
                             curly_brace_tag = false;
                             self.state = ParserState::Tag;
                         } else {
-                            self.tag_position = self.tag_position + 1;
+                            self.tag_position += 1;
                         }
                     } else {
                         // We don't have a tag, so add all the tag parts we've seen
@@ -310,9 +297,9 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
             // token), then this token is standalone.
             None => TokenClass::StandAlone,
 
-            Some(&Token::IncompleteSection(_, _, _, true)) => TokenClass::StandAlone,
+            Some(Token::IncompleteSection(_, _, _, true)) => TokenClass::StandAlone,
 
-            Some(&Token::Text(ref s)) if !s.is_empty() => {
+            Some(Token::Text(s)) if !s.is_empty() => {
                 // Look for the last newline character that may have whitespace
                 // following it.
                 match s.rfind(|c: char| c == '\n' || !c.is_whitespace()) {
@@ -476,14 +463,12 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
                                         _,
                                         _,
                                         _,
-                                        _,
                                         ref osection,
-                                        ref src,
                                         ref csection,
-                                        _,
+                                        ref fdata,
                                     ) => {
                                         srcs.push(osection.clone());
-                                        srcs.push(src.clone());
+                                        srcs.push(fdata[1].clone());
                                         srcs.push(csection.clone());
                                     }
                                     _ => bug!("Incomplete sections should not be nested"),
@@ -500,33 +485,22 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
                                     src.push_str(s);
                                 }
 
+                                let fdata =
+                                    vec![self.opening_tag.clone(), src, self.closing_tag.clone()];
+
                                 #[cfg(feature = "CFEngine")]
                                 self.tokens
                                     .push(if name.first() == Some(&"-top-".to_string()) {
                                         Token::TopSection(children)
                                     } else {
                                         Token::Section(
-                                            name,
-                                            inverted,
-                                            children,
-                                            self.opening_tag.clone(),
-                                            osection,
-                                            src,
-                                            tag,
-                                            self.closing_tag.clone(),
+                                            name, inverted, children, osection, tag, fdata,
                                         )
                                     });
 
                                 #[cfg(not(feature = "CFEngine"))]
                                 self.tokens.push(Token::Section(
-                                    name,
-                                    inverted,
-                                    children,
-                                    self.opening_tag.clone(),
-                                    osection,
-                                    src,
-                                    tag,
-                                    self.closing_tag.clone(),
+                                    name, inverted, children, osection, tag, fdata,
                                 ));
 
                                 break;
@@ -619,7 +593,7 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
 
     fn not_otag(&mut self) {
         for (i, ch) in self.opening_tag_chars.iter().enumerate() {
-            if !(i < self.tag_position) {
+            if i >= self.tag_position {
                 break;
             }
             self.content.push(*ch);
@@ -628,7 +602,7 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
 
     fn not_ctag(&mut self) {
         for (i, ch) in self.closing_tag_chars.iter().enumerate() {
-            if !(i < self.tag_position) {
+            if i >= self.tag_position {
                 break;
             }
             self.content.push(*ch);
@@ -639,7 +613,7 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
 fn get_name_or_implicit(name: &str) -> Result<Vec<String>, Error> {
     // If the name is "." then we want the top element, which we represent with
     // an empty name.
-    let name = deny_blank(&name)?;
+    let name = deny_blank(name)?;
     Ok(if name == "." {
         Vec::new()
     } else {

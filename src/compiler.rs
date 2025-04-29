@@ -4,9 +4,9 @@ use std::io::ErrorKind::NotFound;
 use std::io::Read;
 
 use super::Context;
-use parser::{Parser, Token};
+use crate::parser::{Parser, Token};
 
-use Result;
+use crate::Result;
 
 pub type PartialsMap = HashMap<String, Vec<Token>>;
 
@@ -23,8 +23,8 @@ impl<T: Iterator<Item = char>> Compiler<T> {
     /// Construct a default compiler.
     pub fn new(ctx: Context, reader: T) -> Compiler<T> {
         Compiler {
-            ctx: ctx,
-            reader: reader,
+            ctx,
+            reader,
             partials: HashMap::new(),
             otag: "{{".to_string(),
             ctag: "}}".to_string(),
@@ -40,11 +40,11 @@ impl<T: Iterator<Item = char>> Compiler<T> {
         ctag: String,
     ) -> Compiler<T> {
         Compiler {
-            ctx: ctx,
-            reader: reader,
-            partials: partials,
-            otag: otag,
-            ctag: ctag,
+            ctx,
+            reader,
+            partials,
+            otag,
+            ctag,
         }
     }
 
@@ -104,9 +104,9 @@ impl<T: Iterator<Item = char>> Compiler<T> {
 mod tests {
     use std::path::PathBuf;
 
-    use compiler::Compiler;
-    use context::Context;
-    use parser::Token;
+    use crate::compiler::Compiler;
+    use crate::context::Context;
+    use crate::parser::Token;
 
     fn compile_str(template: &str) -> Vec<Token> {
         let ctx = Context::new(PathBuf::from("."));
@@ -220,11 +220,9 @@ mod tests {
                 vec!["name".to_string()],
                 false,
                 Vec::new(),
-                "{{".to_string(),
                 "{{# name}}".to_string(),
-                "".to_string(),
                 "{{/name}}".to_string(),
-                "}}".to_string(),
+                vec!["{{".to_string(), "".to_string(), "}}".to_string()],
             )],
         );
 
@@ -236,11 +234,9 @@ mod tests {
                     vec!["name".to_string()],
                     true,
                     Vec::new(),
-                    "{{".to_string(),
                     "{{^name}}".to_string(),
-                    "".to_string(),
                     "{{/name}}".to_string(),
-                    "}}".to_string(),
+                    vec!["{{".to_string(), "".to_string(), "}}".to_string()],
                 ),
                 Token::Text(" after".to_string()),
             ],
@@ -254,11 +250,9 @@ mod tests {
                     vec!["name".to_string()],
                     false,
                     Vec::new(),
-                    "{{".to_string(),
                     "{{#name}}".to_string(),
-                    "".to_string(),
                     "{{/name}}".to_string(),
-                    "}}".to_string(),
+                    vec!["{{".to_string(), "".to_string(), "}}".to_string()],
                 ),
             ],
         );
@@ -270,11 +264,9 @@ mod tests {
                     vec!["name".to_string()],
                     false,
                     Vec::new(),
-                    "{{".to_string(),
                     "{{#name}}".to_string(),
-                    "".to_string(),
                     "{{/name}}".to_string(),
-                    "}}".to_string(),
+                    vec!["{{".to_string(), "".to_string(), "}}".to_string()],
                 ),
                 Token::Text(" after".to_string()),
             ],
@@ -293,19 +285,19 @@ mod tests {
                             vec!["b".to_string()],
                             true,
                             vec![Token::Text(" 2 ".to_string())],
-                            "{{".to_string(),
                             "{{^b}}".to_string(),
-                            " 2 ".to_string(),
                             "{{/b}}".to_string(),
-                            "}}".to_string(),
+                            vec!["{{".to_string(), " 2 ".to_string(), "}}".to_string()],
                         ),
                         Token::Text(" ".to_string()),
                     ],
-                    "{{".to_string(),
                     "{{#a}}".to_string(),
-                    " 1 {{^b}} 2 {{/b}} ".to_string(),
                     "{{/a}}".to_string(),
-                    "}}".to_string(),
+                    vec![
+                        "{{".to_string(),
+                        " 1 {{^b}} 2 {{/b}} ".to_string(),
+                        "}}".to_string(),
+                    ],
                 ),
                 Token::Text(" after".to_string()),
             ],

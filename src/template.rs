@@ -6,13 +6,13 @@ use std::mem;
 use std::str;
 use std::vec;
 
-use compiler::Compiler;
+use crate::compiler::Compiler;
 // for bug!
+use crate::parser::Token;
 use log::{error, log};
-use parser::Token;
 use serde::Serialize;
 
-use super::{to_data, Context, Data, Error, Result};
+use super::{Context, Data, Error, Result, to_data};
 
 /// `Template` represents a compiled mustache file.
 #[derive(Debug, Clone)]
@@ -26,9 +26,9 @@ pub struct Template {
 /// not exported outside of mustache.
 pub fn new(ctx: Context, tokens: Vec<Token>, partials: HashMap<String, Vec<Token>>) -> Template {
     Template {
-        ctx: ctx,
-        tokens: tokens,
-        partials: partials,
+        ctx,
+        tokens,
+        partials,
     }
 }
 
@@ -76,7 +76,7 @@ struct RenderContext<'a> {
 impl<'a> RenderContext<'a> {
     fn new(template: &'a Template) -> RenderContext<'a> {
         RenderContext {
-            template: template,
+            template,
             indent: "".to_string(),
             line_start: true,
             at: "".to_string(),
@@ -118,11 +118,11 @@ impl<'a> RenderContext<'a> {
             Token::Text(ref value) => self.render_text(wr, value),
             Token::EscapedTag(ref path, _) => self.render_etag(wr, stack, path),
             Token::UnescapedTag(ref path, _) => self.render_utag(wr, stack, path),
-            Token::Section(ref path, true, ref children, _, _, _, _, _) => {
+            Token::Section(ref path, true, ref children, _, _, _) => {
                 self.render_inverted_section(wr, stack, path, children)
             }
-            Token::Section(ref path, false, ref children, ref otag, _, ref src, _, ref ctag) => {
-                self.render_section(wr, stack, path, children, src, otag, ctag)
+            Token::Section(ref path, false, ref children, _, _, ref fdata) => {
+                self.render_section(wr, stack, path, children, fdata)
             }
             Token::Partial(ref name, ref indent, _) => self.render_partial(wr, stack, name, indent),
             Token::IncompleteSection(..) => {
@@ -331,9 +331,9 @@ impl<'a> RenderContext<'a> {
     ) -> Result<()> {
         match self.find(path, stack) {
             None => {}
-            Some(&Data::Null) => {}
-            Some(&Data::Bool(false)) => {}
-            Some(&Data::Vec(ref xs)) if xs.is_empty() => {}
+            Some(Data::Null) => {}
+            Some(Data::Bool(false)) => {}
+            Some(Data::Vec(xs)) if xs.is_empty() => {}
             Some(_) => {
                 return Ok(());
             }
@@ -384,9 +384,7 @@ impl<'a> RenderContext<'a> {
         stack: &mut Vec<&Data>,
         path: &[String],
         children: &[Token],
-        src: &str,
-        otag: &str,
-        ctag: &str,
+        fdata: &[String],
     ) -> Result<()> {
         match self.find(path, stack) {
             None => {}
@@ -394,14 +392,14 @@ impl<'a> RenderContext<'a> {
                 Data::Null => {}
                 Data::Bool(true) => self.render(wr, stack, children)?,
                 Data::Bool(false) => (),
-                Data::String(ref val) => {
+                Data::String(val) => {
                     if !val.is_empty() {
                         stack.push(value);
                         self.render(wr, stack, children)?;
                         stack.pop();
                     }
                 }
-                Data::Vec(ref vs) => {
+                Data::Vec(vs) => {
                     for (i, v) in vs.iter().enumerate() {
                         stack.push(v);
                         self.at = i.to_string();
@@ -434,9 +432,9 @@ impl<'a> RenderContext<'a> {
                         stack.pop();
                     }
                 }
-                Data::Fun(ref fcell) => {
+                Data::Fun(fcell) => {
                     let f = &mut *fcell.borrow_mut();
-                    let tokens = self.render_fun(src, otag, ctag, f)?;
+                    let tokens = self.render_fun(&fdata[1], &fdata[0], &fdata[2], f)?;
                     self.render(wr, stack, &tokens)?;
                 }
             },
@@ -453,11 +451,11 @@ impl<'a> RenderContext<'a> {
     ) -> Result<()> {
         match self.template.partials.get(name) {
             None => (),
-            Some(ref tokens) => {
+            Some(tokens) => {
                 let mut indent = self.indent.clone() + indent;
 
                 mem::swap(&mut self.indent, &mut indent);
-                self.render(wr, stack, &tokens)?;
+                self.render(wr, stack, tokens)?;
                 mem::swap(&mut self.indent, &mut indent);
             }
         };

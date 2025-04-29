@@ -1,0 +1,63 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  fmt:
+    name: rustfmt / stable
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Rust rustfmt
+        run: cargo fmt --all -- --check
+
+  clippy:
+    name: clippy / stable
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Run clippy
+        run: cargo clippy --locked -- -D warnings
+
+  test:
+    name: test / ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - ubuntu-22.04-arm
+        include:
+          - name: stable
+            rust: stable
+          - name: beta
+            rust: beta
+          - name: stable
+            rust: stable
+          - name: 1.85.0
+            rust: 1.85.0
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: git submodule update --init --recursive
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: Run tests
+        run: cargo test --locked --all

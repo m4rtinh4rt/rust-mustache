@@ -32,7 +32,7 @@ impl serde::Serialize for Data {
                 seq.end()
             }
             Data::Map(ref v) => {
-                let v: BTreeMap<_, _> = v.into_iter().collect();
+                let v: BTreeMap<_, _> = v.iter().collect();
                 let mut map = serializer.serialize_map(Some(v.len()))?;
                 for (k, va) in v {
                     map.serialize_entry(k, va)?;
@@ -48,12 +48,12 @@ impl PartialEq for Data {
     #[inline]
     fn eq(&self, other: &Data) -> bool {
         match (self, other) {
-            (&Data::Null, &Data::Null) => true,
-            (&Data::String(ref v0), &Data::String(ref v1)) => v0 == v1,
-            (&Data::Bool(ref v0), &Data::Bool(ref v1)) => v0 == v1,
-            (&Data::Vec(ref v0), &Data::Vec(ref v1)) => v0 == v1,
-            (&Data::Map(ref v0), &Data::Map(ref v1)) => v0 == v1,
-            (&Data::Fun(_), &Data::Fun(_)) => {
+            (Data::Null, Data::Null) => true,
+            (Data::String(v0), Data::String(v1)) => v0 == v1,
+            (Data::Bool(v0), Data::Bool(v1)) => v0 == v1,
+            (Data::Vec(v0), Data::Vec(v1)) => v0 == v1,
+            (Data::Map(v0), Data::Map(v1)) => v0 == v1,
+            (Data::Fun(_), &Data::Fun(_)) => {
                 bug!("Cannot compare closures");
                 false
             }
@@ -66,10 +66,10 @@ impl fmt::Debug for Data {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Data::Null => write!(f, "Null"),
-            Data::String(ref v) => write!(f, "StrVal({})", v),
-            Data::Bool(v) => write!(f, "Bool({:?})", v),
-            Data::Vec(ref v) => write!(f, "VecVal({:?})", v),
-            Data::Map(ref v) => write!(f, "Map({:?})", v),
+            Data::String(ref v) => write!(f, "StrVal({v})"),
+            Data::Bool(v) => write!(f, "Bool({v:?})"),
+            Data::Vec(ref v) => write!(f, "VecVal({v:?})"),
+            Data::Map(ref v) => write!(f, "Map({v:?})"),
             Data::Fun(_) => write!(f, "Fun(...)"),
         }
     }
