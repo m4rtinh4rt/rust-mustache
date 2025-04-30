@@ -14,17 +14,11 @@ pub enum Token {
     Section(Vec<String>, bool, Vec<Token>, String, String, Vec<String>),
     IncompleteSection(Vec<String>, bool, String, bool),
     Partial(String, String, String),
-    #[cfg(feature = "CFEngine")]
     At,
-    #[cfg(feature = "CFEngine")]
     JSON(Vec<String>, String),
-    #[cfg(feature = "CFEngine")]
     JSONMulti(Vec<String>, String),
-    #[cfg(feature = "CFEngine")]
     TopJSON(Vec<String>, String),
-    #[cfg(feature = "CFEngine")]
     TopJSONMulti(Vec<String>, String),
-    #[cfg(feature = "CFEngine")]
     TopSection(Vec<Token>),
 }
 
@@ -373,7 +367,6 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
                 // ignore comments
                 self.eat_whitespace();
             }
-            #[cfg(feature = "CFEngine")]
             '%' => {
                 // Data to be rendered as multi-line JSON representation
                 let name = &content[1..len];
@@ -386,7 +379,6 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
                         Token::JSONMulti(name, tag)
                     });
             }
-            #[cfg(feature = "CFEngine")]
             '$' => {
                 // Data to be rendered as compact JSON representation
                 let name = get_name_or_implicit(&content[1..len])?;
@@ -424,7 +416,6 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
                 self.tokens
                     .push(Token::IncompleteSection(name, true, tag, newlined));
             }
-            #[cfg(feature = "CFEngine")]
             '@' => {
                 self.tokens.push(Token::At);
             }
@@ -449,7 +440,6 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
                             let mut srcs = Vec::new();
                             for child in children.iter() {
                                 match *child {
-                                    #[cfg(feature = "CFEngine")]
                                     Token::JSON(_, ref s)
                                     | Token::JSONMulti(_, ref s)
                                     | Token::TopJSON(_, ref s)
@@ -488,7 +478,6 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
                                 let fdata =
                                     vec![self.opening_tag.clone(), src, self.closing_tag.clone()];
 
-                                #[cfg(feature = "CFEngine")]
                                 self.tokens
                                     .push(if name.first() == Some(&"-top-".to_string()) {
                                         Token::TopSection(children)
@@ -497,11 +486,6 @@ impl<'a, T: Iterator<Item = char>> Parser<'a, T> {
                                             name, inverted, children, osection, tag, fdata,
                                         )
                                     });
-
-                                #[cfg(not(feature = "CFEngine"))]
-                                self.tokens.push(Token::Section(
-                                    name, inverted, children, osection, tag, fdata,
-                                ));
 
                                 break;
                             } else {

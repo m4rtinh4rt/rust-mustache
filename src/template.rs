@@ -1,4 +1,3 @@
-#[cfg(feature = "CFEngine")]
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::io::Write;
@@ -47,7 +46,6 @@ impl Template {
     pub fn render_data<W: Write>(&self, wr: &mut W, data: &Data) -> Result<()> {
         let mut render_ctx = RenderContext::new(self);
         let mut stack = vec![data];
-
         render_ctx.render(wr, &mut stack, &self.tokens)
     }
 
@@ -103,17 +101,11 @@ impl<'a> RenderContext<'a> {
         token: &Token,
     ) -> Result<()> {
         match *token {
-            #[cfg(feature = "CFEngine")]
             Token::At => self.render_at(wr),
-            #[cfg(feature = "CFEngine")]
             Token::JSON(ref path, _) => self.render_json(wr, stack, path, false),
-            #[cfg(feature = "CFEngine")]
             Token::JSONMulti(ref path, _) => self.render_json(wr, stack, path, true),
-            #[cfg(feature = "CFEngine")]
             Token::TopJSON(ref path, _) => self.render_json(wr, stack, path, false),
-            #[cfg(feature = "CFEngine")]
             Token::TopJSONMulti(ref path, _) => self.render_json(wr, stack, path, true),
-            #[cfg(feature = "CFEngine")]
             Token::TopSection(ref children) => self.render_section_top(wr, stack, children),
             Token::Text(ref value) => self.render_text(wr, value),
             Token::EscapedTag(ref path, _) => self.render_etag(wr, stack, path),
@@ -151,7 +143,6 @@ impl<'a> RenderContext<'a> {
         Ok(())
     }
 
-    #[cfg(feature = "CFEngine")]
     fn render_at<W: Write>(&mut self, wr: &mut W) -> Result<()> {
         if !self.at.is_empty() {
             let at = self.at.clone();
@@ -263,7 +254,6 @@ impl<'a> RenderContext<'a> {
         Ok(())
     }
 
-    #[cfg(feature = "CFEngine")]
     fn write_tracking_newlines_json<T: serde::Serialize, W: Write>(
         &mut self,
         wr: &mut W,
@@ -278,7 +268,6 @@ impl<'a> RenderContext<'a> {
         Ok(())
     }
 
-    #[cfg(feature = "CFEngine")]
     fn render_json<W: Write>(
         &mut self,
         wr: &mut W,
@@ -342,7 +331,6 @@ impl<'a> RenderContext<'a> {
         self.render(wr, stack, children)
     }
 
-    #[cfg(feature = "CFEngine")]
     fn render_section_top<W: Write>(
         &mut self,
         wr: &mut W,
@@ -409,7 +397,6 @@ impl<'a> RenderContext<'a> {
                     }
                 }
                 Data::Map(_m) => {
-                    #[cfg(feature = "CFEngine")]
                     if children.contains(&Token::At) {
                         let b: BTreeMap<_, _> = _m.into_iter().collect();
                         for (k, v) in b.iter() {
@@ -420,13 +407,6 @@ impl<'a> RenderContext<'a> {
                             stack.pop();
                         }
                     } else {
-                        stack.push(value);
-                        self.render(wr, stack, children)?;
-                        stack.pop();
-                    }
-
-                    #[cfg(not(feature = "CFEngine"))]
-                    {
                         stack.push(value);
                         self.render(wr, stack, children)?;
                         stack.pop();
@@ -540,7 +520,6 @@ impl<'a> RenderContext<'a> {
     }
 }
 
-#[cfg(feature = "CFEngine")]
 #[cfg(test)]
 mod tests {
     use crate::compile_str;
